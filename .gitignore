@@ -30,3 +30,12 @@
 *.exe
 *.out
 *.app
+
+#pio
+/.pio/
+
+#VsCode
+/.vscode/
+
+# Doxygen
+/doc/html
