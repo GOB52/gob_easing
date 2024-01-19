@@ -1,9 +1,9 @@
 /*!
   @file gob_easing.hpp
-  @brief Standard group of easing functions that allowed compile-time calculation with constexpr
+  @brief Main header for gob_easing
 
   @mainpage gob_easing
-  Standard group of easing functions that allowed compile-time calculation with constexpr
+  Easing functions that allowed compile-time calculation with constexpr (C++ 11 or later)
 
   @sa https://easings.net/
   
@@ -132,19 +132,19 @@ constexpr T log(T x, T y)
 // pow(fp, integer) pow(fp, fp)
 template <typename T, typename U,
           typename std::enable_if< std::is_integral<U>::value, std::nullptr_t>::type = nullptr>
-constexpr T pow(T x, U y)
+constexpr T pow(const T x, U const y)
 {
     static_assert(std::is_arithmetic<T>::value, "x must be arithmetic type");
     return (y == 0) ? T{1} :
             y == 1 ? x :
             y > 1 ?
-            ((y & 1) ? x * pow(x, y-1) : pow(x, y/2) * pow(x,y/2)) :
+            ((y & 1) ? x * pow(x, y - 1) : pow(x, y / 2) * pow(x, y / 2)) :
             T{1} / pow(x, -y);
 }
 
 template <typename T,
           typename std::enable_if< std::is_floating_point<T>::value, std::nullptr_t>::type = nullptr>
-constexpr T pow(T x, T y)
+constexpr T pow(const T x, const T y)
 {
     static_assert(std::is_arithmetic<T>::value, "x must be arithmetic type");
     return (y == std::numeric_limits<T>::infinity()) ? std::numeric_limits<T>::infinity() :
@@ -172,8 +172,8 @@ template <typename T> constexpr T cos(const T x)
 
 # pragma message "Using GCC-extended arithmetic functions"
 template<typename T> constexpr T sqrt(const T x) { return std::sqrt(x); }
-template<typename T> constexpr T pow(T x, T y) { return std::pow(x, y); }
-template<typename T> constexpr T pow(T x, int y) { return std::pow(x, y); }
+template<typename T> constexpr T pow(const T x, const T y) { return std::pow(x, y); }
+template<typename T> constexpr T pow(const T x, const int y) { return std::pow(x, y); }
 template<typename T> constexpr T sin(const T x) { return std::sin(x); }
 template<typename T> constexpr T cos(const T x) { return std::cos(x); }
 
@@ -186,72 +186,81 @@ template<typename T> constexpr T cos(const T x) { return std::cos(x); }
 ///@warning No range check of values is performed, so check on the side to be passed on.
 ///@{
 
-//! @brief Linear
+/// @brief Linear
 template<typename T> constexpr T linear(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
     return t;
 }
 
-//! @brief Ease in sinusoidal
+/// @brief Ease in sinusoidal
+/// @sa https://easings.net/#easeInSine
 template<typename T> constexpr T inSinusoidal(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
     return (t == T{1}) ? T{1} : -math::cos(t * constants::half_pi<T>()) + T{1};
 }
 
-//! @brief Ease out sinusoidal
+/// @brief Ease out sinusoidal
+/// @sa https://easings.net/#easeOutSine
 template<typename T> constexpr T outSinusoidal(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
-    return (t == T{1}) ? T{1} : math::sin(t * constants::half_pi<T>());
+    return math::sin(t * constants::half_pi<T>());
 }
 
-//! @brief Ease inout sinusoidal
+/// @brief Ease inout sinusoidal
+/// @sa https://easings.net/#easeInOutSine
 template<typename T> constexpr T inOutSinusoidal(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
     return -T{0.5} * (math::cos(t * constants::pi<T>()) - T{1});
 }
 
-//! @brief Ease in quadratic
+/// @brief Ease in quadratic
+/// @sa https://easings.net/#easeInQuad
 template<typename T> constexpr T inQuadratic(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
     return t * t;
 }
 
-//! @brief Ease out quadratic
+/// @brief Ease out quadratic
+/// @sa https://easings.net/#easeOutQuad
 template<typename T> constexpr T outQuadratic(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
     return -t * (t - T{2.0});
 }
 
-//! @brief Ease inout quadratic
+/// @brief Ease inout quadratic
+/// @sa https://easings.net/#easeInOutQuad
 template<typename T> constexpr T inOutQuadratic(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
-    return (t * T{2}) < T{1.0} ?
-            T{0.5} * (t * T{2}) * (t * T{2}) :
+    return ((t * T{2}) < T{1.0}) ?
+            (T{0.5} * (t * T{2}) * (t * T{2})) :
             -T{0.5} * (((t * T{2}) - T{1}) * (((t * T{2}) - T{1}) - T{2}) - T{1});
 }
 
-//! @brief Ease in cubic
+/// @brief Ease in cubic
+/// @sa https://easings.net/#easeInCubic
 template<typename T> constexpr T inCubic(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
     return t * t * t;
 }
 
-//! @brief Ease out cubic
+/// @brief Ease out cubic
+/// @sa https://easings.net/#easeOutCubic
 template<typename T> constexpr T outCubic(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
     return ((t - T{1}) * (t - T{1}) * (t - T{1}) + T{1});
 }
 
-//! @brief Ease inout cubic
+/// @brief Ease inout cubic
+/// @sa https://easings.net/#easeInOutCubic
 template<typename T> constexpr T inOutCubic(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");    
@@ -260,21 +269,24 @@ template<typename T> constexpr T inOutCubic(const T t)
             T{0.5} * ((t * T{2} - T{2}) * (t * T{2} - T{2}) * (t * T{2} - T{2}) + T{2});
 }
 
-//! @brief Ease in quartic
+/// @brief Ease in quartic
+/// @sa https://easings.net/#easeInQuart
 template<typename T> constexpr T inQuartic(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
     return t * t * t * t;
 }
 
-//! @brief Ease out quartic
+/// @brief Ease out quartic
+/// @sa https://easings.net/#easeOutQuart
 template<typename T> constexpr T outQuartic(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
     return -((t - T{1}) * (t - T{1}) * (t - T{1}) * (t - T{1}) - T{1});
 }
 
-//! @brief Ease inout quartic
+/// @brief Ease inout quartic
+/// @sa https://easings.net/#easeOutQuart
 template<typename T> constexpr T inOutQuartic(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
@@ -283,21 +295,24 @@ template<typename T> constexpr T inOutQuartic(const T t)
             -T{0.5} * ((t * T{2} - T{2}) * (t * T{2} - T{2}) * (t * T{2} - T{2}) * (t * T{2} - T{2}) - T{2});
 }
 
-//! @brief Ease in quintic
+/// @brief Ease in quintic
+/// @sa https://easings.net/#easeInQuint
 template<typename T> constexpr T inQuintic(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
     return t * t * t * t * t;
 }
 
-//! @brief Ease out quintic
+/// @brief Ease out quintic
+/// @sa https://easings.net/#easeOutQuint
 template<typename T> constexpr T outQuintic(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
     return ((t - T{1}) * (t - T{1}) * (t - T{1}) * (t - T{1}) * (t - T{1}) + T{1});
 }
 
-//! @brief Ease inout quintic
+/// @brief Ease inout quintic
+/// @sa https://easings.net/#easeInOutQuint
 template<typename T> constexpr T inOutQuintic(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
@@ -306,21 +321,24 @@ template<typename T> constexpr T inOutQuintic(const T t)
             T{0.5} * ((t * T{2} - T{2}) * (t * T{2} - T{2}) * (t * T{2} - T{2}) * (t * T{2} - T{2}) * (t * T{2} - T{2}) + T{2});
 }
 
-//! @brief Ease in exponential
+/// @brief Ease in exponential
+/// @sa https://easings.net/#easeInExpo
 template<typename T> constexpr T inExponential(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
     return math::equal_fp(t, T{0}) ? T{0} : math::pow(T{2}, T{10} * (t - T{1}));
 }
 
-//! @brief Ease out exponential
+/// @brief Ease out exponential
+/// @sa https://easings.net/#easeOutExpo
 template<typename T> constexpr T outExponential(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
     return math::equal_fp(t, T{1}) ? T{1} : -math::pow(T{2}, -T{10} * t) + T{1};
 }
 
-//! @brief Ease inout exponential
+/// @brief Ease inout exponential
+/// @sa https://easings.net/#easeInOutExpo
 template<typename T>constexpr T inOutExponential(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
@@ -331,20 +349,23 @@ template<typename T>constexpr T inOutExponential(const T t)
             T{0.5} * (-math::pow(T{2}, -T{10} * (t * T{2} - T{1})) + T{2});
 }
 
-//! @brief Ease in circular
+/// @brief Ease in circular
+/// @sa https://easings.net/#easeInCirc
 template<typename T> constexpr T inCircular(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
     return -(math::sqrt(T{1} - t * t) - T{1});
 }
 
-//! @brief Ease out eircular
+/// @brief Ease out circular
+/// @sa https://easings.net/#easeOutCirc
 template<typename T> constexpr T outCircular(const T t)
 {
     return math::sqrt(T{1} - (t - T{1}) * (t - T{1}));
 }
 
-//! @brief Ease inout eircular
+/// @brief Ease inout circular
+/// @sa https://easings.net/#easeInOutCirc
 template<typename T> constexpr T inOutCircular(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
@@ -353,14 +374,16 @@ template<typename T> constexpr T inOutCircular(const T t)
              T{0.5} * (math::sqrt(T{1} - (t * T{2} - T{2}) * (t * T{2} - T{2})) + T{1});
 }
 
-//! @brief Ease in back
+/// @brief Ease in back
+/// @sa https://easings.net/#easeInBack
 template<typename T> constexpr T inBack(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
     return t * t * ((constants::back_factor<T>() + T{1} ) * t - constants::back_factor<T>());
 }
 
-//! @brief Ease out back
+/// @brief Ease out back
+/// @sa https://easings.net/#easeOutBack
 template<typename T> constexpr T outBack(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
@@ -371,7 +394,8 @@ template<typename T> constexpr T outBack(const T t)
 #endif
 }
 
-//! @brief Ease inout back
+/// @brief Ease inout back
+/// @sa https://easings.net/#easeInOutBack
 template<typename T> constexpr T inOutBack(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
@@ -380,7 +404,8 @@ template<typename T> constexpr T inOutBack(const T t)
     T{0.5} * ((t * T{2} - T{2}) * (t * T{2} - T{2}) * ((constants::back_factor2<T>() + T{1}) * (t * T{2} - T{2}) + constants::back_factor2<T>()) + T{2});
 }
 
-//! @brief Ease in elastic
+/// @brief Ease in elastic
+/// @sa https://easings.net/#easeInElastic
 template<typename T> constexpr T inElastic(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
@@ -395,7 +420,8 @@ template<typename T> constexpr T inElastic(const T t)
             -math::pow(T{2}, T{10} * t - T{10}) * math::sin((sin_type)(t * T{10} - T{10.75}) * constants::elastic_factor<T>());
 }
 
-//! @brief Ease out elastic
+/// @brief Ease out elastic
+/// @sa https://easings.net/#easeOutElastic
 template<typename T> constexpr T outElastic(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
@@ -409,7 +435,8 @@ template<typename T> constexpr T outElastic(const T t)
             math::pow(T{2}, -T{10} * t) * math::sin((sin_type)(t * T{10} - T{0.75}) * constants::elastic_factor<T>()) + T{1};
 }
 
-//! @brief Ease inout elastic
+/// @brief Ease inout elastic
+/// @sa https://easings.net/#easeInOutElastic
 template<typename T> constexpr T inOutElastic(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
@@ -425,7 +452,8 @@ template<typename T> constexpr T inOutElastic(const T t)
              T{0.5} * (math::pow(T{2}, -T{20} * t + T{10}) * math::sin((sin_type)(T{20} * t - T{11.125}) * constants::elastic_factor2<T>())) + T{1}));
 }
 
-//! @brief Ease out bounce
+/// @brief Ease out bounce
+/// @sa https://easings.net/#easeOutBounce
 template<typename T> constexpr T outBounce(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
@@ -435,14 +463,16 @@ template<typename T> constexpr T outBounce(const T t)
             constants::bounce_factor2<T>() * (t - (T{2.625} / constants::bounce_factor<T>())) * (t - (T{2.625} / constants::bounce_factor<T>())) + T{0.984375};
 }
 
-//! @brief Ease in bounce
+/// @brief Ease in bounce
+/// @sa https://easings.net/#easeInBounce
 template<typename T> constexpr T inBounce(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
     return T{1} - outBounce<T>(T{1} - t);
 }
 
-//! @brief Ease inout bounce
+/// @brief Ease inout bounce
+/// @sa https://easings.net/#easeInOutBounce
 template<typename T>constexpr T inOutBounce(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
