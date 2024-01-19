@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <cmath>
+#include <type_traits>
 
 // Define if you are forced to use own math functions
 //#define GOBLIB_EASING_USING_FORCE_OWN_MATH
@@ -53,20 +54,17 @@ namespace easing
 namespace constants
 {
 ///@cond 0
-constexpr float pi = M_PI;
-constexpr float half_pi = pi * 0.5f;
-constexpr float pi2 = pi * 2.0f;
+template<typename T> constexpr T pi() noexcept { return T{M_PI}; }
+template<typename T> constexpr T half_pi() noexcept { return  pi<T>() * T{0.5}; }
+template<typename T> constexpr T pi2() noexcept { return pi<T>() * T{2.0}; }
+template<typename T> constexpr T e() noexcept { return T{2.71828182845904523536}; }
 
-constexpr float e = 2.71828182845904523536f;
-
-constexpr float back_factor = 1.70158f;
-constexpr float back_factor2 = back_factor * 1.525f;
-
-constexpr float elastic_factor = pi2 / 3.0f;
-constexpr float elastic_factor2 = pi2 / 4.5f;
-
-constexpr float bounce_factor =  2.75f;
-constexpr float bounce_factor2 = 7.5625f;
+template<typename T> constexpr T back_factor() noexcept { return T{1.70158}; }
+template<typename T> constexpr T back_factor2() noexcept { return back_factor<T>() * T{1.525}; }
+template<typename T> constexpr T elastic_factor() noexcept { return pi2<T>() / T{3.0}; }
+template<typename T> constexpr T elastic_factor2() noexcept { return pi2<T>() / T{4.5}; }
+template<typename T> constexpr T bounce_factor() noexcept { return T{2.75}; }
+template<typename T> constexpr T bounce_factor2() noexcept { return T{7.5625}; }
 ///@endcond
 }//
 
@@ -79,12 +77,8 @@ constexpr float bounce_factor2 = 7.5625f;
 namespace math
 {
 ///@cond 0
-template<typename T> constexpr T abs(const T x) noexcept
-{
-    return x >= T{0} ? x : -x;
-}            
-
-template<typename T> constexpr bool equal_fp(const T x, const T y) noexcept
+template<typename T> constexpr T abs(const T x) { return x >= T{0} ? x : -x; }
+template<typename T> constexpr bool equal_fp(const T x, const T y)
 {
     return abs(x - y) <= std::numeric_limits<T>::epsilon();
 }
@@ -93,11 +87,11 @@ template<typename T> constexpr bool equal_fp(const T x, const T y) noexcept
 # pragma message "Using uniquely implemented arithmetic functions"
 
 // sqrt
-template<typename T> constexpr T sqrt_impl(const T x, const T curr, const T prev) noexcept
+template<typename T> constexpr T sqrt_impl(const T x, const T curr, const T prev)
 {
     return equal_fp(curr, prev) ? curr : sqrt_impl(x, T{0.5} * (curr + x / curr), curr);
 }
-template<typename T> constexpr T sqrt(const T x) noexcept
+template<typename T> constexpr T sqrt(const T x)
 {
     return (x >= T{0} && x < std::numeric_limits<T>::infinity())
             ? sqrt_impl(x, x, T{0})
@@ -105,18 +99,18 @@ template<typename T> constexpr T sqrt(const T x) noexcept
 }
 
 // factorial(unsigned int)
-template<typename T> constexpr T factorial(T n) noexcept
+template<typename T> constexpr T factorial(T n)
 {
     static_assert(std::is_unsigned<T>::value, "n must be unsigned arithmetic type");
     return (n == 0) ? 1 : n * factorial(n - 1);
 }
 
 // exp(fp)
-template <typename T> constexpr T exp_impl(T x, T sum, T n, int i, T t) noexcept
+template <typename T> constexpr T exp_impl(T x, T sum, T n, int i, T t)
 {
     return equal_fp(sum, sum + t/n) ? sum : exp_impl(x, sum + t/n, n * i, i+1, t * x);
 }
-template <typename T> constexpr T exp(T x) noexcept
+template <typename T> constexpr T exp(T x)
 {
     static_assert(std::is_floating_point<T>::value, "x must be floating point number");
     return exp_impl(x, T{1}, T{1}, 2, x);
@@ -138,7 +132,7 @@ constexpr T log(T x, T y)
 // pow(fp, integer) pow(fp, fp)
 template <typename T, typename U,
           typename std::enable_if< std::is_integral<U>::value, std::nullptr_t>::type = nullptr>
-constexpr T pow(T x, U y) noexcept
+constexpr T pow(T x, U y)
 {
     static_assert(std::is_arithmetic<T>::value, "x must be arithmetic type");
     return (y == 0) ? T{1} :
@@ -150,31 +144,29 @@ constexpr T pow(T x, U y) noexcept
 
 template <typename T,
           typename std::enable_if< std::is_floating_point<T>::value, std::nullptr_t>::type = nullptr>
-constexpr T pow(T x, T y) noexcept
+constexpr T pow(T x, T y)
 {
     static_assert(std::is_arithmetic<T>::value, "x must be arithmetic type");
     return (y == std::numeric_limits<T>::infinity()) ? std::numeric_limits<T>::infinity() :
-            (y == -std::numeric_limits<T>::infinity()) ? T{0} : exp(log(x, T{constants::e}) * y);
+            (y == -std::numeric_limits<T>::infinity()) ? T{0} : exp(log(x, T{constants::e<T>()}) * y);
 }
 
 // sin(fp)
-
-template <typename T> constexpr T trig_series(T x, T sum, T n, int i, int s, T t) noexcept
+template <typename T> constexpr T sincos_impl(T x, T sum, T n, int i, int s, T t)
 {
     return equal_fp(sum ,sum + t*s/n) ? sum :
-            trig_series(x, sum + t*s/n, n*i*(i+1), i+2, -s, t*x*x);
+            sincos_impl(x, sum + t*s/n, n*i*(i+1), i+2, -s, t*x*x);
 }
 
-template <typename T> constexpr T sin(const T x) noexcept
+template <typename T> constexpr T sin(const T x)
 {
-    return trig_series(x, x, T{6}, 4, -1, x*x*x);
+    return sincos_impl(x, x, T{6}, 4, -1, x*x*x);
 }
 
-template <typename T> constexpr T cos(const T x) noexcept
+template <typename T> constexpr T cos(const T x)
 {
-    return trig_series(x, T{1}, T{2}, 3, -1, x*x);
+    return sincos_impl(x, T{1}, T{2}, 3, -1, x*x);
 }
-
 
 #else
 
@@ -195,217 +187,267 @@ template<typename T> constexpr T cos(const T x) { return std::cos(x); }
 ///@{
 
 //! @brief Linear
-constexpr float linear(const float t)
+template<typename T> constexpr T linear(const T t)
 {
-    return 1.0f * t;
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return t;
 }
 
-//! @brief Quadratic in
-constexpr float quadratic_in(const float t)
+//! @brief Ease in sinusoidal
+template<typename T> constexpr T inSinusoidal(const T t)
 {
-    return 1.0f * t * t;
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return (t == T{1}) ? T{1} : -math::cos(t * constants::half_pi<T>()) + T{1};
 }
 
-//! @brief Quadratic out
-constexpr float quadratic_out(const float t)
+//! @brief Ease out sinusoidal
+template<typename T> constexpr T outSinusoidal(const T t)
 {
-    return -1.0f * t * (t - 2.0f);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return (t == T{1}) ? T{1} : math::sin(t * constants::half_pi<T>());
 }
 
-//! @brief Quadratic in-out
-constexpr float quadratic_inout(const float t)
+//! @brief Ease inout sinusoidal
+template<typename T> constexpr T inOutSinusoidal(const T t)
 {
-    return (t * 2.0f) < 1.0f ?
-            0.5f * (t * 2.0f) * (t * 2.0f) :
-            -0.5f * (((t * 2.0f) - 1.0f) * (((t * 2.0f) - 1.0f) - 2.0f) - 1.0f);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return -T{0.5} * (math::cos(t * constants::pi<T>()) - T{1});
 }
 
-//! @brief Cubic in
-constexpr float cubic_in(const float t)
+//! @brief Ease in quadratic
+template<typename T> constexpr T inQuadratic(const T t)
 {
-    return 1.0f * t * t * t;
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return t * t;
 }
 
-//! @brief Cubic out
-constexpr float cubic_out(const float t)
+//! @brief Ease out quadratic
+template<typename T> constexpr T outQuadratic(const T t)
 {
-    return 1.0f * ((t - 1.0f) * (t - 1.0f) * (t - 1.0f) + 1.0f);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return -t * (t - T{2.0});
 }
 
-//! @brief Cubic in-out
-constexpr float cubic_inout(const float t)
+//! @brief Ease inout quadratic
+template<typename T> constexpr T inOutQuadratic(const T t)
 {
-    return (t * 2.0f) < 1.0f ?
-            0.5f * (t * 2.0f) * (t * 2.0f ) * (t * 2.0f) :
-            0.5f * ((t * 2.0f - 2.0f) * (t * 2.0f - 2.0f) * (t * 2.0f - 2.0f) + 2.0f);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return (t * T{2}) < T{1.0} ?
+            T{0.5} * (t * T{2}) * (t * T{2}) :
+            -T{0.5} * (((t * T{2}) - T{1}) * (((t * T{2}) - T{1}) - T{2}) - T{1});
 }
 
-//! @brief Quartic in
-constexpr float quartic_in(const float t)
+//! @brief Ease in cubic
+template<typename T> constexpr T inCubic(const T t)
 {
-    return 1.0f * t * t * t * t;
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return t * t * t;
 }
 
-//! @brief Quartic out
-constexpr float quartic_out(const float t)
+//! @brief Ease out cubic
+template<typename T> constexpr T outCubic(const T t)
 {
-    return -1.0f * ((t - 1.0f) * (t - 1.0f) * (t - 1.0f) * (t - 1.0f) - 1.0f);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return ((t - T{1}) * (t - T{1}) * (t - T{1}) + T{1});
 }
 
-//! @brief Quartic in-out
-constexpr float quartic_inout(const float t)
+//! @brief Ease inout cubic
+template<typename T> constexpr T inOutCubic(const T t)
 {
-    return (t * 2.0f) < 1.0f ?
-            0.5f * (t * 2.0f) * (t * 2.0f) * (t * 2.0f) * (t * 2.0f) :
-            -0.5f * ((t * 2.0f - 2.0f) * (t * 2.0f - 2.0f) * (t * 2.0f - 2.0f) * (t * 2.0f - 2.0f) - 2.0f);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");    
+    return (t * T{2}) < T{1} ?
+            T{0.5} * (t * T{2}) * (t * T{2} ) * (t * T{2}) :
+            T{0.5} * ((t * T{2} - T{2}) * (t * T{2} - T{2}) * (t * T{2} - T{2}) + T{2});
 }
 
-//! @brief Quintic in
-constexpr float quintic_in(const float t)
+//! @brief Ease in quartic
+template<typename T> constexpr T inQuartic(const T t)
 {
-    return 1.0f * t * t * t * t * t;
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return t * t * t * t;
 }
 
-//! @brief Quintic out
-constexpr float quintic_out(const float t)
+//! @brief Ease out quartic
+template<typename T> constexpr T outQuartic(const T t)
 {
-    return 1.0f * ((t - 1.0f) * (t - 1.0f) * (t - 1.0f) * (t - 1.0f) * (t - 1.0f) + 1.0f);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return -((t - T{1}) * (t - T{1}) * (t - T{1}) * (t - T{1}) - T{1});
 }
 
-//! @brief Quintic in-out
-constexpr float quintic_inout(const float t)
+//! @brief Ease inout quartic
+template<typename T> constexpr T inOutQuartic(const T t)
 {
-    return (t * 2.0f) < 1.0f ?
-            0.5f * (t * 2.0f) * (t * 2.0f) * (t * 2.0f) * (t * 2.0f) * (t * 2.0f) :
-            0.5f * ((t * 2.0f - 2.0f) * (t * 2.0f - 2.0f) * (t * 2.0f - 2.0f) * (t * 2.0f - 2.0f) * (t * 2.0f - 2.0f) + 2.0f);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return (t * T{2}) < T{1} ?
+            T{0.5} * (t * T{2}) * (t * T{2}) * (t * T{2}) * (t * T{2}) :
+            -T{0.5} * ((t * T{2} - T{2}) * (t * T{2} - T{2}) * (t * T{2} - T{2}) * (t * T{2} - T{2}) - T{2});
 }
 
-//! @brief Sinusoidal in
-constexpr float sinusoidal_in(const float t)
+//! @brief Ease in quintic
+template<typename T> constexpr T inQuintic(const T t)
 {
-    return -1.0f * math::cos(t * constants::half_pi) + 1.0f;
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return t * t * t * t * t;
 }
 
-//! @brief Sinusoidal out
-constexpr float sinusoidal_out(const float t)
+//! @brief Ease out quintic
+template<typename T> constexpr T outQuintic(const T t)
 {
-    return 1.0f * math::sin(t * constants::half_pi);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return ((t - T{1}) * (t - T{1}) * (t - T{1}) * (t - T{1}) * (t - T{1}) + T{1});
 }
 
-//! @brief Sinusoidal in-out
-constexpr float sinusoidal_inout(const float t)
+//! @brief Ease inout quintic
+template<typename T> constexpr T inOutQuintic(const T t)
 {
-    return -0.5f * (math::cos(t * constants::pi) - 1.0f);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return (t * T{2}) < T{1} ?
+            T{0.5} * (t * T{2}) * (t * T{2}) * (t * T{2}) * (t * T{2}) * (t * T{2}) :
+            T{0.5} * ((t * T{2} - T{2}) * (t * T{2} - T{2}) * (t * T{2} - T{2}) * (t * T{2} - T{2}) * (t * T{2} - T{2}) + T{2});
 }
 
-//! @brief Exponential in
-constexpr float exponential_in(const float t)
+//! @brief Ease in exponential
+template<typename T> constexpr T inExponential(const T t)
 {
-    return math::equal_fp(t, 0.0f) ? 0.0f : 1.0f * math::pow(2.0f, 10.0f * (t - 1.0f));
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return math::equal_fp(t, T{0}) ? T{0} : math::pow(T{2}, T{10} * (t - T{1}));
 }
 
-//! @brief Exponential out
-constexpr float exponential_out(const float t)
+//! @brief Ease out exponential
+template<typename T> constexpr T outExponential(const T t)
 {
-    return math::equal_fp(t, 1.0f) ? 1.0f : 1.0f * (-math::pow(2.0f, -10.0f * t) + 1.0f);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return math::equal_fp(t, T{1}) ? T{1} : -math::pow(T{2}, -T{10} * t) + T{1};
 }
 
-//! @brief Exponential in-out
-constexpr float exponential_inout(const float t)
+//! @brief Ease inout exponential
+template<typename T>constexpr T inOutExponential(const T t)
 {
-    return math::equal_fp(t, 0.0f) ? 0.0f :
-            math::equal_fp(t, 1.0f) ? 1.0f :
-            (t * 2.0f) < 1.0f ?
-            0.5f * math::pow(2.0f, 10.0f * (t * 2.0f - 1.0f)) :
-            0.5f * (-math::pow(2.0f, -10.0f * (t * 2.0f - 1.0f)) + 2.0f);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return math::equal_fp(t, T{0}) ? T{0} :
+            math::equal_fp(t, T{1}) ? T{1} :
+            (t * T{2}) < T{1} ?
+            T{0.5} * math::pow(T{2}, T{10} * (t * T{2} - T{1})) :
+            T{0.5} * (-math::pow(T{2}, -T{10} * (t * T{2} - T{1})) + T{2});
 }
 
-//! @brief Circular in
-constexpr float circular_in(const float t)
+//! @brief Ease in circular
+template<typename T> constexpr T inCircular(const T t)
 {
-    return -1.0f * (math::sqrt(1.0f - t * t) - 1.0f);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return -(math::sqrt(T{1} - t * t) - T{1});
 }
 
-//! @brief Circular out
-constexpr float circular_out(const float t)
+//! @brief Ease out eircular
+template<typename T> constexpr T outCircular(const T t)
 {
-    return 1.0f * math::sqrt(1.0f - (t - 1.0f) * (t - 1.0f));
+    return math::sqrt(T{1} - (t - T{1}) * (t - T{1}));
 }
 
-//! @brief Circular in-out
-constexpr float circular_inout(const float t)
+//! @brief Ease inout eircular
+template<typename T> constexpr T inOutCircular(const T t)
 {
-    return (t * 2.0f) < 1.0f ?
-            -0.5f * (math::sqrt(1.0f - (t * 2.0f) * (t * 2.0f)) - 1.0f) :
-            0.5f * (math::sqrt(1.0f - (t * 2.0f - 2.0f) * (t * 2.0f - 2.0f)) + 1.0f);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return (t * T{2}) < T{1} ?
+            -T{0.5} * (math::sqrt(T{1} - (t * T{2}) * (t * T{2})) - T{1}) :
+             T{0.5} * (math::sqrt(T{1} - (t * T{2} - T{2}) * (t * T{2} - T{2})) + T{1});
 }
 
-//! @brief Back in
-constexpr float back_in(const float t)
+//! @brief Ease in back
+template<typename T> constexpr T inBack(const T t)
 {
-    return 1.0f * t * t * ((constants::back_factor + 1.0f ) * t - constants::back_factor);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return t * t * ((constants::back_factor<T>() + T{1} ) * t - constants::back_factor<T>());
 }
 
-//! @brief Back out
-constexpr float back_out(const float t)
+//! @brief Ease out back
+template<typename T> constexpr T outBack(const T t)
 {
-    return 1.0f * ((t - 1.0f)* (t - 1.0f) * ((constants::back_factor + 1.0f ) * (t - 1.0f) + constants::back_factor) + 1.0f);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+#if 0
+    return ((t - T{1})* (t - T{1}) * ((constants::back_factor<T>() + T{1} ) * (t - T{1}) + constants::back_factor<T>()) + T{1});
+#else
+    return T{1.0} * ((t - 1.0f) * (t - 1.0f) * ((constants::back_factor<T>() + 1.0f ) * (t - 1.0f) + constants::back_factor<T>()) + 1.0f);
+#endif
 }
 
-//! @brief Back in-out
-constexpr float back_inout(const float t)
+//! @brief Ease inout back
+template<typename T> constexpr T inOutBack(const T t)
 {
-    return (t * 2.0f) < 1.0f ?
-            0.5f * ((t * 2.0f) * (t * 2.0f) * ((constants::back_factor2 + 1.0f) * (t * 2.0f) - constants::back_factor2) ) :
-            0.5f * ((t * 2.0f - 2.0f) * (t * 2.0f - 2.0f) * ((constants::back_factor2 + 1.0f) * (t * 2.0f - 2.0f) + constants::back_factor2) + 2.0f);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return (t * T{2}) < T{1} ?
+            T{0.5} * ((t * T{2}) * (t * T{2}) * ((constants::back_factor2<T>() + T{1}) * (t * T{2}) - constants::back_factor2<T>()) ) :
+    T{0.5} * ((t * T{2} - T{2}) * (t * T{2} - T{2}) * ((constants::back_factor2<T>() + T{1}) * (t * T{2} - T{2}) + constants::back_factor2<T>()) + T{2});
 }
 
-//! @brief Elastic in
-constexpr float elastic_in(const float t)
+//! @brief Ease in elastic
+template<typename T> constexpr T inElastic(const T t)
 {
-    return (t <= 0.0f) ? 0.0f :
-            (t >= 1.0f) ? 1.0f :
-            -math::pow(2.0f, 10.0f * t - 10.0f) * math::sin((t * 10.0f - 10.75f) * constants::elastic_factor);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    //INF,NaN occurs depending on the value of float in own sin, in that case switch to double.
+#if defined(GOBLIB_EASING_USING_OWN_MATH)
+    using sin_type = typename std::common_type< T, double>::type;
+#else
+    using sin_type = T;
+#endif
+    return (t <= T{0}) ? T{0} :
+            (t >= T{1}) ? T{1} :
+            -math::pow(T{2}, T{10} * t - T{10}) * math::sin((sin_type)(t * T{10} - T{10.75}) * constants::elastic_factor<T>());
 }
 
-//! @brief Elastic out
-constexpr float elastic_out(const float t)
+//! @brief Ease out elastic
+template<typename T> constexpr T outElastic(const T t)
 {
-    return (t <= 0.0f) ? 0.0f :
-            (t >= 1.0f) ? 1.0f :
-            math::pow(2.0f, -10.0f * t) * math::sin((t * 10.0f - 0.75f) * constants::elastic_factor) + 1.0f;
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+#if defined(GOBLIB_EASING_USING_OWN_MATH)
+    using sin_type = typename std::common_type< T, double>::type;
+#else
+    using sin_type = T;
+#endif
+    return (t <= T{0}) ? T{0} :
+            (t >= T{1}) ? T{1} :
+            math::pow(T{2}, -T{10} * t) * math::sin((sin_type)(t * T{10} - T{0.75}) * constants::elastic_factor<T>()) + T{1};
 }
 
-//! @brief Elastic in-out
-constexpr float elastic_inout(const float t)
+//! @brief Ease inout elastic
+template<typename T> constexpr T inOutElastic(const T t)
 {
-    return (t <= 0.0f) ? 0.0f :
-            (t >= 1.0f) ? 1.0f :
-            t < 0.5f ?
-            -0.5f * (math::pow(2.0f, 20.0f * t - 10.0f) * math::sin((20.0f * t - 11.125f) * constants::elastic_factor2)) :
-            0.5f * (math::pow(2.0f, -20.0f * t + 10.0f) * math::sin((20.0f * t - 11.125f) * constants::elastic_factor2)) + 1.0f;
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+#if defined(GOBLIB_EASING_USING_OWN_MATH)
+    using sin_type = typename std::common_type< T, double>::type;
+#else
+    using sin_type = T;
+#endif
+    return (t <= T{0}) ? T{0} :
+            ((t >= T{1}) ? T{1} :
+             (t < T{0.5} ?
+            -T{0.5} * (math::pow(T{2}, T{20} * t - T{10}) * math::sin((sin_type)(T{20} * t - T{11.125}) * constants::elastic_factor2<T>())) :
+             T{0.5} * (math::pow(T{2}, -T{20} * t + T{10}) * math::sin((sin_type)(T{20} * t - T{11.125}) * constants::elastic_factor2<T>())) + T{1}));
 }
 
-//! @brief Bounce in
-constexpr float bounce_out(const float t)
+//! @brief Ease out bounce
+template<typename T> constexpr T outBounce(const T t)
 {
-    return t < (1.0f / constants::bounce_factor) ? constants::bounce_factor2 * t * t :
-            t < (2.0f / constants::bounce_factor) ? constants::bounce_factor2 * (t - (1.5f / constants::bounce_factor)) * (t - (1.5f / constants::bounce_factor)) + 0.75f :
-            t < (2.5f / constants::bounce_factor) ? constants::bounce_factor2 * (t - (2.25f / constants::bounce_factor)) * (t- (2.25f / constants::bounce_factor)) + 0.9375f :
-            constants::bounce_factor2 * (t - (2.625f / constants::bounce_factor)) * (t - (2.625f / constants::bounce_factor)) + 0.984375f;
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return t < (T{1} / constants::bounce_factor<T>()) ? constants::bounce_factor2<T>() * t * t :
+            t < (T{2} / constants::bounce_factor<T>()) ? constants::bounce_factor2<T>() * (t - (T{1.5} / constants::bounce_factor<T>())) * (t - (T{1.5} / constants::bounce_factor<T>())) + T{0.75} :
+            t < (T{2.5} / constants::bounce_factor<T>()) ? constants::bounce_factor2<T>() * (t - (T{2.25} / constants::bounce_factor<T>())) * (t- (T{2.25} / constants::bounce_factor<T>())) + T{0.9375} :
+            constants::bounce_factor2<T>() * (t - (T{2.625} / constants::bounce_factor<T>())) * (t - (T{2.625} / constants::bounce_factor<T>())) + T{0.984375};
 }
 
-//! @brief Bounce out
-constexpr float bounce_in(const float t)
+//! @brief Ease in bounce
+template<typename T> constexpr T inBounce(const T t)
 {
-    return 1.0f - bounce_out(1.0f - t);
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return T{1} - outBounce<T>(T{1} - t);
 }
 
-//! @brief Bounce in-out
-constexpr float bounce_inout(const float t)
+//! @brief Ease inout bounce
+template<typename T>constexpr T inOutBounce(const T t)
 {
-    return t < 0.5f ? (1.0f - bounce_out(1.0f - 2.0f * t)) * 0.5f
-            :  (1.0f + bounce_out(2.0f * t - 1.0f)) * 0.5f;
+    static_assert(std::is_floating_point<T>::value, "t must be floating point number");
+    return t < T{0.5} ? (T{1} - outBounce<T>(T{1} - T{2} * t)) * T{0.5}
+            :  (T{1} + outBounce<T>(T{2} * t - T{1})) * T{0.5};
 }
 /// @}
 }}
