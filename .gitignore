@@ -30,3 +30,17 @@
 *.exe
 *.out
 *.app
+
+#pio
+/.pio/
+
+#VsCode
+/.vscode/
+
+# Doxygen
+/doc/html
+
+# 
+debug.cfg
+debug_custom.json
+*.svd

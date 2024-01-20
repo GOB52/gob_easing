@@ -1,0 +1,17 @@
+{
+  "name": "gob_easing",
+  "description": "Easing functions that allowed compile-time calculation with constexpr (C++ 11 or later)",
+  "keywords": "easing, easing-functions, cpp",
+  "authors": {
+    "name": "GOB",
+    "url": "https://github.com/GOB52",
+    "maintainer": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GOB52/gob_easing.git"
+  },
+  "version": "0.0.1",
+  "headers": "gob_easing.hpp",
+  "license": "MIT"
+}
