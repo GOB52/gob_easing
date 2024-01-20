@@ -30,7 +30,7 @@ void foo()
     for(int i=0; i <= 100; ++i)
     {
         float t = (float)i / 100; // Clamp [0.0 - 1.0]
-		float v = goblib::easing::inBack(t);  //Use this value for what you want to do.
+        float v = goblib::easing::inBack(t);  //Use this value for what you want to do.
     }
 }
 ```
