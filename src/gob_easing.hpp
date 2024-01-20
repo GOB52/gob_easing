@@ -201,7 +201,7 @@ template<typename T> constexpr T linear(const T t)
 template<typename T> constexpr T inSinusoidal(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
-    return (t == T{1}) ? T{1} : -math::cos(t * constants::half_pi<T>()) + T{1};
+    return -math::cos(t * constants::half_pi<T>()) + T{1};
 }
 
 /// @brief Ease out sinusoidal
@@ -390,11 +390,7 @@ template<typename T> constexpr T inBack(const T t)
 template<typename T> constexpr T outBack(const T t)
 {
     static_assert(std::is_floating_point<T>::value, "t must be floating point number");
-#if 0
     return ((t - T{1})* (t - T{1}) * ((constants::back_factor<T>() + T{1} ) * (t - T{1}) + constants::back_factor<T>()) + T{1});
-#else
-    return T{1.0} * ((t - 1.0f) * (t - 1.0f) * ((constants::back_factor<T>() + 1.0f ) * (t - 1.0f) + constants::back_factor<T>()) + 1.0f);
-#endif
 }
 
 /// @brief Ease inout back
