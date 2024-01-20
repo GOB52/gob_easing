@@ -86,13 +86,15 @@ template<typename T> constexpr bool equal_fp(const T x, const T y)
 #if defined(GOBLIB_EASING_USING_OWN_MATH)
 # pragma message "Using uniquely implemented arithmetic functions"
 
-// sqrt
+// sqrt(fp)
 template<typename T> constexpr T sqrt_impl(const T x, const T curr, const T prev)
 {
+    static_assert(std::is_arithmetic<T>::value, "x must be arithmetic type");
     return equal_fp(curr, prev) ? curr : sqrt_impl(x, T{0.5} * (curr + x / curr), curr);
 }
 template<typename T> constexpr T sqrt(const T x)
 {
+    static_assert(std::is_arithmetic<T>::value, "x must be arithmetic type");
     return (x >= T{0} && x < std::numeric_limits<T>::infinity())
             ? sqrt_impl(x, x, T{0})
             : (x < 0) ? std::numeric_limits<T>::quiet_NaN() : std::numeric_limits<T>::infinity();
@@ -101,13 +103,14 @@ template<typename T> constexpr T sqrt(const T x)
 // factorial(unsigned int)
 template<typename T> constexpr T factorial(T n)
 {
-    static_assert(std::is_unsigned<T>::value, "n must be unsigned arithmetic type");
+    static_assert(std::is_unsigned<T>::value && std::is_integral<T>::value, "n must be unsigned integral type");
     return (n == 0) ? 1 : n * factorial(n - 1);
 }
 
 // exp(fp)
 template <typename T> constexpr T exp_impl(T x, T sum, T n, int i, T t)
 {
+    static_assert(std::is_arithmetic<T>::value, "x must be arithmetic type");
     return equal_fp(sum, sum + t/n) ? sum : exp_impl(x, sum + t/n, n * i, i+1, t * x);
 }
 template <typename T> constexpr T exp(T x)
@@ -117,15 +120,15 @@ template <typename T> constexpr T exp(T x)
 }
 
 // log(fp,fp)
-template <typename T>
-constexpr T log_iter(T x, T y)
+template <typename T> constexpr T log_iter(T x, T y)
 {
+    static_assert(std::is_arithmetic<T>::value, "x must be arithmetic type");
     return y + T{2} * (x - exp(y)) / (x + exp(y));
 }
 
-template <typename T>
-constexpr T log(T x, T y)
+template <typename T> constexpr T log(T x, T y)
 {
+    static_assert(std::is_arithmetic<T>::value, "x must be arithmetic type");
     return equal_fp(y, log_iter(x, y)) ? y : log(x, log_iter(x, y));
 }
 
